@@ -150,7 +150,7 @@
     }
     
     // Assert file exists
-    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+    if (!path.length || ![[NSFileManager defaultManager] fileExistsAtPath:path]) {
         NSAssert(NO, @"ERROR: %@ does not exist. Please run cordova-ios/bin/cordova_plist_to_config_xml path/to/project.", path);
         return nil;
     }
