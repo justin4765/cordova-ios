@@ -27,6 +27,16 @@
 
 @synthesize urlTransformer;
 
++ (dispatch_queue_t)sharedBackgroundQueue
+{
+    static dispatch_queue_t backgroundQueue;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        backgroundQueue = dispatch_queue_create("org.apache.cordova.sharedBackgroundQueue", DISPATCH_QUEUE_CONCURRENT);
+    });
+    return backgroundQueue;
+}
+
 - (id)initWithViewController:(CDVViewController*)viewController
 {
     self = [super init];
@@ -170,7 +180,7 @@
 
 - (void)runInBackground:(void (^)())block
 {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), block);
+    dispatch_async([CDVCommandDelegateImpl sharedBackgroundQueue], block);
 }
 
 - (NSString*)userAgent
