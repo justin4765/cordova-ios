@@ -22,6 +22,7 @@
 #import "CDVCommandQueue.h"
 #import "CDVPluginResult.h"
 #import "CDVViewController.h"
+#import "CDVUserAgentUtil.h"
 
 @implementation CDVCommandDelegateImpl
 
@@ -185,7 +186,7 @@
 
 - (NSString*)userAgent
 {
-    return [_viewController userAgent];
+    return [CDVUserAgentUtil customUserAgent];
 }
 
 - (NSDictionary*)settings

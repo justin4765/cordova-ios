@@ -21,102 +21,85 @@
 
 #import <UIKit/UIKit.h>
 
-// #define VerboseLog NSLog
-#define VerboseLog(...) do {} while (0)
+static NSString * const kCdvUserAgentKey = @"Cordova-User-Agent";
+static NSString * const kCdvUserAgentVersionKey = @"Cordova-User-Agent-Version";
 
-static NSString* const kCdvUserAgentKey = @"Cordova-User-Agent";
-static NSString* const kCdvUserAgentVersionKey = @"Cordova-User-Agent-Version";
+static inline NSString *SystemAndLocale(void) {
+    NSString* systemVersion = [UIDevice currentDevice].systemVersion;
+    NSString* localeStr = [NSLocale currentLocale].localeIdentifier;
+    // Record the model since simulator can change it without re-install (CB-5420).
+    NSString* model = [UIDevice currentDevice].model;
+    return [NSString stringWithFormat:@"%@ %@ %@", model, systemVersion, localeStr];
+}
 
-static NSString* gOriginalUserAgent = nil;
-static NSInteger gNextLockToken = 0;
-static NSInteger gCurrentLockToken = 0;
-static NSMutableArray* gPendingSetUserAgentBlocks = nil;
+@interface CDVUserAgentUtil ()
+
+@property (atomic, copy) NSString *originalUserAgent;
+
+@end
 
 @implementation CDVUserAgentUtil
 
-+ (NSString*)originalUserAgent
++ (instancetype)_sharedUtil
 {
-    if (gOriginalUserAgent == nil) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onAppLocaleDidChange:)
-                                                     name:NSCurrentLocaleDidChangeNotification object:nil];
+    static CDVUserAgentUtil *util;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        util = [self new];
+    });
+    return util;
+}
 
-        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-        NSString* systemVersion = [[UIDevice currentDevice] systemVersion];
-        NSString* localeStr = [[NSLocale currentLocale] localeIdentifier];
-        // Record the model since simulator can change it without re-install (CB-5420).
-        NSString* model = [UIDevice currentDevice].model;
-        NSString* systemAndLocale = [NSString stringWithFormat:@"%@ %@ %@", model, systemVersion, localeStr];
-
-        NSString* cordovaUserAgentVersion = [userDefaults stringForKey:kCdvUserAgentVersionKey];
-        gOriginalUserAgent = [userDefaults stringForKey:kCdvUserAgentKey];
-        BOOL cachedValueIsOld = ![systemAndLocale isEqualToString:cordovaUserAgentVersion];
-
-        if ((gOriginalUserAgent == nil) || cachedValueIsOld) {
-            UIWebView* sampleWebView = [[UIWebView alloc] initWithFrame:CGRectZero];
-            gOriginalUserAgent = [sampleWebView stringByEvaluatingJavaScriptFromString:@"navigator.userAgent"];
-
-            [userDefaults setObject:gOriginalUserAgent forKey:kCdvUserAgentKey];
-            [userDefaults setObject:systemAndLocale forKey:kCdvUserAgentVersionKey];
-
-            [userDefaults synchronize];
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        NSString *systemAndLocale = SystemAndLocale();
+        if (![systemAndLocale isEqualToString:[[NSUserDefaults standardUserDefaults] stringForKey:kCdvUserAgentVersionKey]]) {
+            [self _setUpUserAgentWithSystemAndLocale:systemAndLocale];
+        } else {
+            _originalUserAgent = [[NSUserDefaults standardUserDefaults] stringForKey:kCdvUserAgentKey];
         }
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onAppLocaleDidChange:) name:NSCurrentLocaleDidChangeNotification object:nil];
     }
-    return gOriginalUserAgent;
+    return self;
+}
+
+- (void)_setUpUserAgentWithSystemAndLocale:(NSString *)systemAndLocale
+{
+    UIWebView *sampleWebView = [[UIWebView alloc] initWithFrame:CGRectZero];
+    _originalUserAgent = [sampleWebView stringByEvaluatingJavaScriptFromString:@"navigator.userAgent"];
+    
+    [[NSUserDefaults standardUserDefaults] setObject:_originalUserAgent forKey:kCdvUserAgentKey];
+    [[NSUserDefaults standardUserDefaults] setObject:systemAndLocale forKey:kCdvUserAgentVersionKey];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 + (void)onAppLocaleDidChange:(NSNotification*)notification
 {
     // TODO: We should figure out how to update the user-agent of existing UIWebViews when this happens.
     // Maybe use the PDF bug (noted in setUserAgent:).
-    gOriginalUserAgent = nil;
+    [[CDVUserAgentUtil _sharedUtil] _setUpUserAgentWithSystemAndLocale:SystemAndLocale()];
 }
 
-+ (void)acquireLock:(void (^)(NSInteger lockToken))block
++ (NSString *)originalUserAgent
 {
-    if (gCurrentLockToken == 0) {
-        gCurrentLockToken = ++gNextLockToken;
-        VerboseLog(@"Gave lock %d", gCurrentLockToken);
-        block(gCurrentLockToken);
+    return [CDVUserAgentUtil _sharedUtil].originalUserAgent;
+}
+
++ (NSString *)customUserAgent
+{
+    return [[NSUserDefaults standardUserDefaults] stringForKey:@"UserAgent"];
+}
+
++ (void)setCustomUserAgent:(NSString *)customUserAgent
+{
+    if (customUserAgent.length) {
+        [[NSUserDefaults standardUserDefaults] registerDefaults:@{ @"UserAgent": customUserAgent }];
     } else {
-        if (gPendingSetUserAgentBlocks == nil) {
-            gPendingSetUserAgentBlocks = [[NSMutableArray alloc] initWithCapacity:4];
-        }
-        VerboseLog(@"Waiting for lock");
-        [gPendingSetUserAgentBlocks addObject:block];
+        [[NSUserDefaults standardUserDefaults] registerDefaults:@{ @"UserAgent": [CDVUserAgentUtil _sharedUtil].originalUserAgent }];
     }
-}
-
-+ (void)releaseLock:(NSInteger*)lockToken
-{
-    if (lockToken == nil || *lockToken == 0) {
-        return;
-    }
-    NSAssert(gCurrentLockToken == *lockToken, @"Got token %ld, expected %ld", (long)*lockToken, (long)gCurrentLockToken);
-
-    VerboseLog(@"Released lock %d", *lockToken);
-    if ([gPendingSetUserAgentBlocks count] > 0) {
-        void (^block)() = [gPendingSetUserAgentBlocks objectAtIndex:0];
-        [gPendingSetUserAgentBlocks removeObjectAtIndex:0];
-        gCurrentLockToken = ++gNextLockToken;
-        NSLog(@"Gave lock %ld", (long)gCurrentLockToken);
-        block(gCurrentLockToken);
-    } else {
-        gCurrentLockToken = 0;
-    }
-    *lockToken = 0;
-}
-
-+ (void)setUserAgent:(NSString*)value lockToken:(NSInteger)lockToken
-{
-    NSAssert(gCurrentLockToken == lockToken, @"Got token %ld, expected %ld", (long)lockToken, (long)gCurrentLockToken);
-    VerboseLog(@"User-Agent set to: %@", value);
-
-    // Setting the UserAgent must occur before a UIWebView is instantiated.
-    // It is read per instantiation, so it does not affect previously created views.
-    // Except! When a PDF is loaded, all currently active UIWebViews reload their
-    // User-Agent from the NSUserDefaults some time after the DidFinishLoad of the PDF bah!
-    NSDictionary* dict = [[NSDictionary alloc] initWithObjectsAndKeys:value, @"UserAgent", nil];
-    [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
 }
 
 @end
