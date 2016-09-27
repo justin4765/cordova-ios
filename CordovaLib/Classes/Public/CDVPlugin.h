@@ -53,7 +53,6 @@ extern NSString* const CDVRemoteNotificationError;
 - (void)onAppTerminate;
 - (void)onMemoryWarning;
 - (void)onReset;
-- (void)dispose;
 
 /*
  // see initWithWebView implementation

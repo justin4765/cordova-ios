@@ -27,7 +27,6 @@
 @property (nonatomic, readonly) BOOL currentlyExecuting;
 
 - (id)initWithViewController:(CDVViewController*)viewController;
-- (void)dispose;
 
 - (void)resetRequestId;
 - (void)enqueueCommandBatch:(NSString*)batchJSON;

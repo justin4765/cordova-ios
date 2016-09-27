@@ -46,7 +46,7 @@
 @implementation CDVViewController
 
 @synthesize supportedOrientations;
-@synthesize pluginObjects, pluginsMap, startupPluginNames;
+@synthesize pluginsMap, startupPluginNames;
 @synthesize configParser, settings;
 @synthesize wwwFolderName, startPage, initialized, openURL;
 @synthesize commandDelegate = _commandDelegate;
@@ -620,8 +620,9 @@
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    [_commandQueue dispose];
-    [[self.pluginObjects allValues] makeObjectsPerformSelector:@selector(dispose)];
+    _commandQueue = nil;
+    _commandDelegate = nil;
+    _pluginObjects = nil;
 }
 
 @end

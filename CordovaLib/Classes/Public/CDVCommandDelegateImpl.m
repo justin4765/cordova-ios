@@ -24,6 +24,13 @@
 #import "CDVViewController.h"
 #import "CDVUserAgentUtil.h"
 
+@interface CDVCommandDelegateImpl ()
+
+@property (nonatomic, weak) CDVViewController *viewController;
+@property (nonatomic, weak) CDVCommandQueue *commandQueue;
+
+@end
+
 @implementation CDVCommandDelegateImpl
 
 @synthesize urlTransformer;

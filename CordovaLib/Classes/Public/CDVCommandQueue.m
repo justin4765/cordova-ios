@@ -31,10 +31,12 @@ static const double MAX_EXECUTION_TIME = .008; // Half of a 60fps frame.
 
 @interface CDVCommandQueue () {
     NSInteger _lastCommandQueueFlushRequestId;
-    __weak CDVViewController* _viewController;
     NSMutableArray* _queue;
     NSTimeInterval _startExecutionTime;
 }
+
+@property (nonatomic, weak) CDVViewController *viewController;
+
 @end
 
 @implementation CDVCommandQueue
@@ -52,12 +54,6 @@ static const double MAX_EXECUTION_TIME = .008; // Half of a 60fps frame.
         _queue = [[NSMutableArray alloc] init];
     }
     return self;
-}
-
-- (void)dispose
-{
-    // TODO(agrieve): Make this a zeroing weak ref once we drop support for 4.3.
-    _viewController = nil;
 }
 
 - (void)resetRequestId

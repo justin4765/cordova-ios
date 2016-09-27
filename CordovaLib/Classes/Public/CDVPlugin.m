@@ -92,8 +92,10 @@ NSString* const CDVRemoteNotificationError = @"CDVRemoteNotificationError";
     // [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pageDidLoad:) name:CDVPageDidLoadNotification object:self.webView];
 }
 
-- (void)dispose
+- (void)dealloc
 {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];   // this will remove all notification unless added using addObserverForName:object:queue:usingBlock:
+    
     viewController = nil;
     commandDelegate = nil;
 }
@@ -142,11 +144,6 @@ NSString* const CDVRemoteNotificationError = @"CDVRemoteNotificationError";
 - (void)onReset
 {
     // Override to cancel any long-running requests when the WebView navigates or refreshes.
-}
-
-- (void)dealloc
-{
-    [[NSNotificationCenter defaultCenter] removeObserver:self];   // this will remove all notification unless added using addObserverForName:object:queue:usingBlock:
 }
 
 - (id)appDelegate
