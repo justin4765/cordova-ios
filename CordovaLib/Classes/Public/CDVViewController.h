@@ -23,11 +23,10 @@
 #import "CDVInvokedUrlCommand.h"
 #import "CDVCommandDelegate.h"
 #import "CDVCommandQueue.h"
-#import "CDVScreenOrientationDelegate.h"
 #import "CDVPlugin.h"
 #import "CDVWebViewEngineProtocol.h"
 
-@interface CDVViewController : UIViewController <CDVScreenOrientationDelegate>{
+@interface CDVViewController : UIViewController {
     @protected
     id <CDVWebViewEngineProtocol> _webViewEngine;
     @protected
@@ -41,7 +40,6 @@
 @property (nonatomic, readonly, strong) NSMutableDictionary* pluginObjects;
 @property (nonatomic, readonly, strong) NSDictionary* pluginsMap;
 @property (nonatomic, readonly, strong) NSMutableDictionary* settings;
-@property (nonatomic, readonly, strong) NSXMLParser* configParser;
 
 @property (nonatomic, readwrite, copy) NSString* configFile;
 @property (nonatomic, readwrite, copy) NSString* wwwFolderName;

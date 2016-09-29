@@ -22,7 +22,6 @@
 
 @class CDVPlugin;
 @class CDVPluginResult;
-@class CDVWhitelist;
 
 typedef NSURL* (^ UrlTransformerBlock)(NSURL*);
 

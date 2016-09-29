@@ -21,15 +21,13 @@
 #import "CDV.h"
 #import "CDVPlugin+Private.h"
 #import "CDVUIWebViewDelegate.h"
-#import "CDVConfigParser.h"
+#import "CDVConfiguration.h"
 #import <AVFoundation/AVFoundation.h>
-#import "NSDictionary+CordovaPreferences.h"
 #import "CDVLocalStorage.h"
 #import "CDVCommandDelegateImpl.h"
 
 @interface CDVViewController ()
 
-@property (nonatomic, readwrite, strong) NSXMLParser* configParser;
 @property (nonatomic, readwrite, strong) NSMutableDictionary* settings;
 @property (nonatomic, readwrite, strong) NSMutableDictionary* pluginObjects;
 @property (nonatomic, readwrite, strong) NSMutableArray* startupPluginNames;
@@ -47,7 +45,7 @@
 
 @synthesize supportedOrientations;
 @synthesize pluginsMap, startupPluginNames;
-@synthesize configParser, settings;
+@synthesize settings;
 @synthesize wwwFolderName, startPage, initialized, openURL;
 @synthesize commandDelegate = _commandDelegate;
 @synthesize commandQueue = _commandQueue;
@@ -134,60 +132,16 @@
     NSLog(@"Multi-tasking -> Device: %@, App: %@", (backgroundSupported ? @"YES" : @"NO"), (![exitsOnSuspend intValue]) ? @"YES" : @"NO");
 }
 
--(NSString*)configFilePath{
-    NSString* path = self.configFile ?: @"config.xml";
-
-    // if path is relative, resolve it against the main bundle
-    if(![path isAbsolutePath]){
-        NSString* absolutePath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
-        if(!absolutePath){
-            NSAssert(NO, @"ERROR: %@ not found in the main bundle!", path);
-        }
-        path = absolutePath;
-    }
-    
-    // Assert file exists
-    if (!path.length || ![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-        NSAssert(NO, @"ERROR: %@ does not exist. Please run cordova-ios/bin/cordova_plist_to_config_xml path/to/project.", path);
-        return nil;
-    }
-    
-    return path;
-}
-
-- (void)parseSettingsWithParser:(NSObject <NSXMLParserDelegate>*)delegate
-{
-    // read from config.xml in the app bundle
-    NSString* path = [self configFilePath];
-    
-    NSURL* url = [NSURL fileURLWithPath:path];
-
-    self.configParser = [[NSXMLParser alloc] initWithContentsOfURL:url];
-    if (self.configParser == nil) {
-        NSLog(@"Failed to initialize XML parser.");
-        return;
-    }
-    [self.configParser setDelegate:((id < NSXMLParserDelegate >)delegate)];
-    [self.configParser parse];
-}
-
 - (void)loadSettings
 {
-    CDVConfigParser* delegate = [[CDVConfigParser alloc] init];
-
-    [self parseSettingsWithParser:delegate];
-
     // Get the plugin dictionary, whitelist and settings from the delegate.
-    self.pluginsMap = delegate.pluginsDict;
-    self.startupPluginNames = delegate.startupPluginNames;
-    self.settings = delegate.settings;
+    self.pluginsMap = [CDVConfiguration pluginsDict];
+    self.startupPluginNames = [CDVConfiguration startupPluginNames];
+    self.settings = [CDVConfiguration settings];
 
     // And the start folder/page.
     if(self.wwwFolderName == nil){
         self.wwwFolderName = @"www";
-    }
-    if(delegate.startPage && self.startPage == nil){
-        self.startPage = delegate.startPage;
     }
     if (self.startPage == nil) {
         self.startPage = @"index.html";
@@ -239,7 +193,7 @@
 {
     NSURL* errorUrl = nil;
 
-    id setting = [self.settings cordovaSettingForKey:@"ErrorUrl"];
+    id setting = self.settings[@"ErrorUrl"];
 
     if (setting) {
         NSString* errorUrlString = (NSString*)setting;
@@ -276,11 +230,11 @@
 
     NSString* backupWebStorageType = @"cloud"; // default value
 
-    id backupWebStorage = [self.settings cordovaSettingForKey:@"BackupWebStorage"];
+    id backupWebStorage = self.settings[@"BackupWebStorage"];
     if ([backupWebStorage isKindOfClass:[NSString class]]) {
         backupWebStorageType = backupWebStorage;
     }
-    [self.settings setCordovaSetting:backupWebStorageType forKey:@"BackupWebStorage"];
+    self.settings[@"BackupWebStorage"] = backupWebStorageType;
     
     [CDVLocalStorage __fixupDatabaseLocationsWithBackupType:backupWebStorageType];
 
@@ -304,15 +258,9 @@
     }
 
     if ([self.startupPluginNames count] > 0) {
-        [CDVTimer start:@"TotalPluginStartup"];
-
         for (NSString* pluginName in self.startupPluginNames) {
-            [CDVTimer start:pluginName];
             [self getCommandInstance:pluginName];
-            [CDVTimer stop:pluginName];
         }
-
-        [CDVTimer stop:@"TotalPluginStartup"];
     }
 
     // /////////////////
@@ -398,7 +346,7 @@
 - (UIView*)newCordovaViewWithFrame:(CGRect)bounds
 {
     NSString* defaultWebViewEngineClass = @"CDVUIWebViewEngine";
-    NSString* webViewEngineClass = [self.settings cordovaSettingForKey:@"CordovaWebViewEngine"];
+    NSString* webViewEngineClass = self.settings[@"CordovaWebViewEngine"];
 
     if (!webViewEngineClass) {
         webViewEngineClass = defaultWebViewEngineClass;
