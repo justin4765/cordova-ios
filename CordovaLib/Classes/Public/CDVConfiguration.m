@@ -8,49 +8,59 @@
 
 #import "CDVConfiguration.h"
 
-static const NSDictionary *kPluginsDict;
-static const NSDictionary *kSettings;
-static const NSArray *kStartupPluginNames;
-static const NSDictionary *kPluginMethodsDict;
+static const NSDictionary<NSString *, NSString *> *kPluginsDict;
+static const NSMutableDictionary<NSString *, NSString *> *kSettings;
+static const NSMutableArray<NSString *> *kStartupPluginNames;
+static const NSDictionary<NSString *, NSArray<NSString *> *> *kPluginMethodsDict;
 
 @implementation CDVConfiguration
 
-+ (void)registerPlugins:(NSDictionary *)pluginsDict
++ (void)initialize
+{
+    if (self == [CDVConfiguration class]) {
+        kPluginsDict = [NSDictionary dictionary];
+        kSettings = [NSMutableDictionary dictionary];
+        kStartupPluginNames = [NSMutableArray array];
+        kPluginMethodsDict = [NSDictionary dictionary];
+    }
+}
+
++ (void)registerPlugins:(NSDictionary<NSString *, NSString *> *)pluginsDict
 {
     kPluginsDict = pluginsDict;
 }
 
-+ (void)registerSettings:(NSDictionary *)settings
++ (void)registerSettings:(NSMutableDictionary<NSString *, NSString *> *)settings
 {
     kSettings = settings;
 }
 
-+ (void)registerStartupPluginNames:(NSArray *)startupPluginNames
++ (void)registerStartupPluginNames:(NSMutableArray<NSString *> *)startupPluginNames
 {
     kStartupPluginNames = startupPluginNames;
 }
 
-+ (void)registerPluginMethods:(NSDictionary *)pluginMethodsDict
++ (void)registerPluginMethods:(NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsDict
 {
     kPluginMethodsDict = pluginMethodsDict;
 }
 
-+ (NSDictionary *)pluginsDict
++ (NSDictionary<NSString *, NSString *> *)pluginsDict
 {
     return kPluginsDict;
 }
 
-+ (NSDictionary *)settings
++ (NSMutableDictionary<NSString *, NSString *> *)settings
 {
     return kSettings;
 }
 
-+ (NSArray *)startupPluginNames
++ (NSMutableArray<NSString *> *)startupPluginNames
 {
     return kStartupPluginNames;
 }
 
-+ (NSDictionary *)pluginMethodsDict
++ (NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsDict
 {
     return kPluginMethodsDict;
 }

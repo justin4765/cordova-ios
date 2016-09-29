@@ -28,8 +28,6 @@
 
 @interface CDVViewController : UIViewController {
     @protected
-    id <CDVWebViewEngineProtocol> _webViewEngine;
-    @protected
     id <CDVCommandDelegate> _commandDelegate;
     @protected
     CDVCommandQueue* _commandQueue;
@@ -38,17 +36,17 @@
 @property (nonatomic, readonly, weak) IBOutlet UIView* webView;
 
 @property (nonatomic, readonly, strong) NSMutableDictionary* pluginObjects;
-@property (nonatomic, readonly, strong) NSDictionary* pluginsMap;
-@property (nonatomic, readonly, strong) NSMutableDictionary* settings;
 
-@property (nonatomic, readwrite, copy) NSString* configFile;
-@property (nonatomic, readwrite, copy) NSString* wwwFolderName;
 @property (nonatomic, readwrite, copy) NSString* startPage;
 @property (nonatomic, readonly, strong) CDVCommandQueue* commandQueue;
 @property (nonatomic, readonly, strong) id <CDVWebViewEngineProtocol> webViewEngine;
 @property (nonatomic, readonly, strong) id <CDVCommandDelegate> commandDelegate;
 
 - (UIView*)newCordovaViewWithFrame:(CGRect)bounds;
+
+- (NSDictionary<NSString *, NSString *> *)pluginsMap;
+- (NSMutableDictionary<NSString *, NSString *> *)settings;
+- (NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsMap;
 
 - (NSString*)appURLScheme;
 - (NSURL*)errorURL;

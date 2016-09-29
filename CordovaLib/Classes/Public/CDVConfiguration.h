@@ -10,14 +10,14 @@
 
 @interface CDVConfiguration : NSObject
 
-+ (void)registerPlugins:(NSDictionary *)pluginsDict;
-+ (void)registerSettings:(NSDictionary *)settings;
-+ (void)registerStartupPluginNames:(NSDictionary *)startupPluginNames;
-+ (void)registerPluginMethods:(NSDictionary *)pluginMethodsDict;
++ (void)registerPlugins:(NSDictionary<NSString *, NSString *> *)pluginsDict;
++ (void)registerSettings:(NSMutableDictionary<NSString *, NSString *> *)settings;
++ (void)registerStartupPluginNames:(NSMutableArray<NSString *> *)startupPluginNames;
++ (void)registerPluginMethods:(NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsDict;
 
-+ (NSDictionary *)pluginsDict;
-+ (NSDictionary *)settings;
-+ (NSArray *)startupPluginNames;
-+ (NSDictionary *)pluginMethodsDict;
++ (NSDictionary<NSString *, NSString *> *)pluginsDict;
++ (NSMutableDictionary<NSString *, NSString *> *)settings;
++ (NSMutableArray<NSString *> *)startupPluginNames;
++ (NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsDict;
 
 @end

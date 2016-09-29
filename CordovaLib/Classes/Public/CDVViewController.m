@@ -28,10 +28,7 @@
 
 @interface CDVViewController ()
 
-@property (nonatomic, readwrite, strong) NSMutableDictionary* settings;
 @property (nonatomic, readwrite, strong) NSMutableDictionary* pluginObjects;
-@property (nonatomic, readwrite, strong) NSMutableArray* startupPluginNames;
-@property (nonatomic, readwrite, strong) NSDictionary* pluginsMap;
 @property (nonatomic, readwrite, strong) NSArray* supportedOrientations;
 @property (nonatomic, readwrite, strong) id <CDVWebViewEngineProtocol> webViewEngine;
 
@@ -44,9 +41,7 @@
 @implementation CDVViewController
 
 @synthesize supportedOrientations;
-@synthesize pluginsMap, startupPluginNames;
-@synthesize settings;
-@synthesize wwwFolderName, startPage, initialized, openURL;
+@synthesize startPage, initialized, openURL;
 @synthesize commandDelegate = _commandDelegate;
 @synthesize commandQueue = _commandQueue;
 @synthesize webViewEngine = _webViewEngine;
@@ -134,21 +129,32 @@
 
 - (void)loadSettings
 {
-    // Get the plugin dictionary, whitelist and settings from the delegate.
-    self.pluginsMap = [CDVConfiguration pluginsDict];
-    self.startupPluginNames = [CDVConfiguration startupPluginNames];
-    self.settings = [CDVConfiguration settings];
-
-    // And the start folder/page.
-    if(self.wwwFolderName == nil){
-        self.wwwFolderName = @"www";
-    }
     if (self.startPage == nil) {
         self.startPage = @"index.html";
     }
 
     // Initialize the plugin objects dict.
-    self.pluginObjects = [[NSMutableDictionary alloc] initWithCapacity:20];
+    self.pluginObjects = [NSMutableDictionary dictionary];
+}
+
+- (NSDictionary<NSString *, NSString *> *)pluginsMap
+{
+    return [CDVConfiguration pluginsDict];
+}
+
+- (NSMutableDictionary<NSString *, NSString *> *)settings
+{
+    return [CDVConfiguration settings];
+}
+
+- (NSMutableArray<NSString *> *)startupPluginNames
+{
+    return [CDVConfiguration startupPluginNames];
+}
+
+- (NSDictionary<NSString *, NSArray<NSString *> *> *)pluginMethodsMap
+{
+    return [CDVConfiguration pluginMethodsDict];
 }
 
 - (NSURL*)appUrl
@@ -157,16 +163,6 @@
 
     if ([self.startPage rangeOfString:@"://"].location != NSNotFound) {
         appURL = [NSURL URLWithString:self.startPage];
-    } else if ([self.wwwFolderName rangeOfString:@"://"].location != NSNotFound) {
-        appURL = [NSURL URLWithString:[NSString stringWithFormat:@"%@/%@", self.wwwFolderName, self.startPage]];
-    } else if([self.wwwFolderName hasSuffix:@".bundle"]){
-        // www folder is actually a bundle
-        NSBundle* bundle = [NSBundle bundleWithPath:self.wwwFolderName];
-        appURL = [bundle URLForResource:self.startPage withExtension:nil];
-    } else if([self.wwwFolderName hasSuffix:@".framework"]){
-        // www folder is actually a framework
-        NSBundle* bundle = [NSBundle bundleWithPath:self.wwwFolderName];
-        appURL = [bundle URLForResource:self.startPage withExtension:nil];
     } else {
         // CB-3005 strip parameters from start page to check if page exists in resources
         NSURL* startURL = [NSURL URLWithString:self.startPage];
@@ -269,7 +265,7 @@
         NSURLRequest* appReq = [NSURLRequest requestWithURL:appURL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
         [self.webViewEngine loadRequest:appReq];
     } else {
-        NSString* loadErr = [NSString stringWithFormat:@"ERROR: Start Page at '%@/%@' was not found.", self.wwwFolderName, self.startPage];
+        NSString* loadErr = @"ERROR: Start Page was not found.";
         NSLog(@"%@", loadErr);
         
         NSURL* errorUrl = [self errorURL];
@@ -381,31 +377,6 @@
     view.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
     [self.view addSubview:view];
     [self.view sendSubviewToBack:view];
-}
-
-- (void)didReceiveMemoryWarning
-{
-    // iterate through all the plugin objects, and call hasPendingOperation
-    // if at least one has a pending operation, we don't call [super didReceiveMemoryWarning]
-
-    NSEnumerator* enumerator = [self.pluginObjects objectEnumerator];
-    CDVPlugin* plugin;
-
-    BOOL doPurge = YES;
-
-    while ((plugin = [enumerator nextObject])) {
-        if (plugin.hasPendingOperation) {
-            NSLog(@"Plugin '%@' has a pending operation, memory purge is delayed for didReceiveMemoryWarning.", NSStringFromClass([plugin class]));
-            doPurge = NO;
-        }
-    }
-
-    if (doPurge) {
-        // Releases the view if it doesn't have a superview.
-        [super didReceiveMemoryWarning];
-    }
-
-    // Release any cached data, images, etc. that aren't in use.
 }
 
 #pragma mark CordovaCommands
