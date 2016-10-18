@@ -76,7 +76,7 @@ static inline NSString *SystemAndLocale(void) {
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
-+ (void)onAppLocaleDidChange:(NSNotification*)notification
+- (void)onAppLocaleDidChange:(NSNotification*)notification
 {
     // TODO: We should figure out how to update the user-agent of existing UIWebViews when this happens.
     // Maybe use the PDF bug (noted in setUserAgent:).
